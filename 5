@@ -1,0 +1,75 @@
+# Run this app with `python app.py` and
+# visit http://127.0.0.1:8050/ in your web browser.
+
+import dash
+from dash import dcc
+from dash import html
+from dash.dependencies import Input, Output
+import plotly.express as px
+import pandas as pd
+from datetime import date
+from datetime import datetime as dt
+
+
+
+
+app = dash.Dash(__name__)
+
+df = pd.DataFrame({
+    "SIC": ["US88", "US88", "US88", "US88", "US88", "US88", "US880", "US881", "US882", "US883", "US884"],
+    "Date": ["2021.12.26", "2021.12.27", "2021.12.28", "2021.12.29", "2021.12.30", "2021.12.31", "2021.07.31", "2021.08.31", "2021.09.30", "2021.10.31", "2021.11.30"],
+    "Maturity": [4, 1, 2, 2, 4, 5, 1, 2, 2, 4, 5],
+    "Strike": [3, 4, 5, 6, 6, 7, 4, 5, 6, 6, 7]
+})
+df["Date"] = pd.to_datetime(df["Date"])
+
+app.layout = html.Div(children=[
+    # title setting
+    html.H1(children='Payoff Lab', style={'textAlign': 'center','backgroundColor': 'lightblue'}),
+    html.H6('This is my first web app at Stable', style={'textAlign': 'center'}),
+
+    # first block
+    dcc.Dropdown(
+        id = "SIC_dropdown",
+        options = [
+        {"label":"SIC US88", "value":"US88"},
+        {'label': "SIC US881", 'value': 'US881'},
+        {'label': "SIC US882", 'value': 'US882'},
+    {'label': "SIC US883", 'value': 'US883'},
+    {'label': "SIC US884", 'value': 'US884'},
+    {'label': "SIC US885", 'value': 'US885'},
+    ], placeholder="Select a SIC", searchable=False, value = "SIC US88"),
+
+    # second block
+    html.Div([
+        dcc.DatePickerRange(
+            id='date_picker_range',
+            end_date = date(2021, 12, 31),
+            start_date_placeholder_text= 'Select a start date!'
+        )
+    ]),
+
+    # third block
+    dcc.Graph(id='indicator_graphic')
+    ])
+
+
+@app.callback(
+        Output(component_id = 'indicator_graphic', component_property = 'children'),
+        [Input(component_id = 'SIC_dropdown', component_property = 'value'),
+        Input(component_id = 'date_picker_range', component_property = 'value')])
+
+
+def update_graph(SIC_dropdown, start_date):
+    start_date = pd.to_datetime(start_date)
+    dff = df[df['SIC'] == SIC_dropdown]
+    dff = df.loc[(start_date <= df['Date'])]
+
+    fig = px.scatter(x= dff['Date'],
+                     y=dff['Maturity'] - dff['Strike'])
+
+    return fig
+
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
