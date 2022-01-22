@@ -158,10 +158,15 @@ def update_graph(SIC_dropdown, start_date, end_date):
                 flag1 = 0
             elif flag1 == 1:
                 dff_columnName = dff.columns[0]
-                dff_array = dff[dff_columnName].to_numpy()
+                dff_array = np.array(dff[dff_columnName].to_list())
                 if (len(sic_array) == n):
-                    corr = pearsonr(dff_array,sic_array)
-                    cor[sic] = corr[0]
+                    is_all_zero = np.all((sic_array == 0))
+                    is_all_zero1 = np.all((dff_array == 0))
+                    if is_all_zero or is_all_zero1:
+                        pass
+                    else:
+                        corr = pearsonr(dff_array,sic_array)
+                        cor[sic_df_columnName] = corr[0]
     for sic in sic_list:
         if cor[sic] is not None:
             if cor[sic] != 1:
