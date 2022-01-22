@@ -137,7 +137,9 @@ def update_graph(SIC_dropdown, start_date, end_date):
     # column_name1 = df.columns[1]
     dff = df[start_date:end_date]
     n = len(dff)
-
+    
+    
+    cor = {}
     for sic in sic_list:
         sic_df = get_index_data_list(sic)
         if sic_df is not None:
@@ -146,7 +148,6 @@ def update_graph(SIC_dropdown, start_date, end_date):
         if (sic_df is None) or (sic_df.empty):
             flag = 0
         elif flag ==1:
-            cor = {}
             sic_df_columnName = sic_df.columns[0]
             sic_array = sic_df[sic_df_columnName].to_numpy()
             df = get_index_data(SIC_dropdown)
