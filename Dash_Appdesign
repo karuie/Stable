@@ -1,0 +1,194 @@
+import pandas as pd
+from urllib.parse import quote_plus
+from pymongo import MongoClient
+import dash
+from dash import dcc
+from dash import html
+from dash.dependencies import Input, Output
+from dash import dash_table as dt
+import plotly.express as px
+from datetime import datetime
+import plotly.graph_objects as go
+import base64
+from scipy.stats import pearsonr
+import numpy as np
+
+# db connection
+
+db_address_port = quote_plus('url')
+db_port = xxx
+db_username = quote_plus('xxx')
+db_password = quote_plus('xxx')
+db_auth_db = 'xxx'
+indexDB_connection_string = f'mongodb://{db_username}:{db_password}@' \
+                            f'{db_address_port}:{db_port}/{db_auth_db}'
+
+
+client = MongoClient(indexDB_connection_string)
+# do something with client
+client.close()
+
+
+
+
+app = dash.Dash(__name__)
+
+image_filename = '/Users/yimin/Stable/stable-logo.png'
+encoded_image = base64.b64encode(open(image_filename, 'rb').read())
+
+
+app.layout = html.Div(children=[
+    # title setting
+    html.H1(children='Payoff Lab', style={'textAlign': 'center','backgroundColor': '#10CFC9'}),
+    html.H5('This is my first web app at Stable', style={'textAlign': 'center'}),
+    html.Div(html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()),height="50px"),style={'textAlign': 'right'}),
+
+    html.Div(children = "Select SIC",style={
+        'font-style': 'italic',
+        'font-weight': 'bold'
+    }),
+
+    # first block
+    html.Div(
+        [
+        dcc.Dropdown(
+        id = "SIC_dropdown",
+        options = [{'label': i, 'value': i} for i in sic_list],
+        style = {'color': 'Dark', 'fontSize': 20,"width": "60%", "height" :"90%"},
+       placeholder = "Select SIC",
+       searchable = True,
+        value = "AE1")]
+    ),
+    html.Div(children="Select Date", style={
+        'font-style': 'italic',
+        'font-weight': 'bold'
+    }),
+    # second block
+    html.Div(
+        dcc.DatePickerRange(
+            id='input_date',
+            # start_date_placeholder_text="Start Period",
+            # end_date_placeholder_text="Maturity Period",
+            # calendar_orientation='vertical',
+            start_date = datetime.strptime("2005-01-31","%Y-%m-%d").date(),
+            end_date = datetime.strptime("2006-01-31", "%Y-%m-%d").date()
+            # start_date=date.today(),
+            # end_date=date.today(),
+            ),
+        style={'color': 'blue', 'fontSize': 12}),
+
+    # third block
+    html.Div(
+        dcc.Graph(id='indicator_graphic'),
+        style = {'display': 'inline-block', 'width': '100%' },
+    ),
+
+    # fourth block
+# html.Div([
+#     html.Label("DataTable about the dataframe ", style = {'color': 'Grey', 'fontSize': 16}),
+#     dt.DataTable(
+#     id='table',
+#     columns=[{"name": i, "id": i} for i in df.columns],
+#     data=df.to_dict('records'),
+#     style_cell={'textAlign': 'left'},
+#         style_header={
+#             'backgroundColor': 'white',
+#             'fontWeight': 'bold',
+#             'minWidth': '120px', 'width': '120px', 'maxWidth': '120px'
+#         },
+#     )])
+    ])
+@app.callback(
+        Output(component_id ='indicator_graphic', component_property = "figure"),
+        [Input(component_id = 'SIC_dropdown', component_property = 'value'),
+
+          Input(component_id = 'input_date', component_property = 'start_date'),
+         Input(component_id = 'input_date', component_property = 'end_date')]
+)
+
+
+def get_index_data_list(sic):
+    client = MongoClient(indexDB_connection_string)
+    sic_df = pd.DataFrame(client['All_index']['all_index_monthly_data'].find({'_id': sic}))
+
+    if sic_df.dropna(axis=1, how='all').empty:
+        return None
+
+    sic_df.set_index(keys='_id', inplace=True)
+    sic_df.index.name = None
+    sic_df = sic_df.T
+    # sic_df.index = pd.to_datetime(sic_df.index, format='%Y-%m-%d %H:%M:%S', errors='coerce')
+    sic_df.index = pd.to_datetime(sic_df.index, format='%Y-%m-%d', errors='coerce')
+    sic_df.index.name = 'Dates'
+    sic_df = sic_df.loc[sic_df.index.dropna()]
+    sic_df = sic_df.apply(pd.to_numeric, errors='coerce')
+    sic_df = sic_df[sic_df.first_valid_index():
+                    sic_df.last_valid_index()]
+
+    if sic_df.dropna(how='all').empty:
+        return None
+
+    return sic_df
+    
+def update_graph(SIC_dropdown, start_date, end_date):
+    df = get_index_data(SIC_dropdown)
+    # df = df.reset_index()
+    column_name0 = df.columns[0]
+    # column_name1 = df.columns[1]
+    dff = df[start_date:end_date]
+    n = len(dff)
+
+    # corr
+    test = sic_list
+    for sic in sic_list:
+        sic_df = get_index_data_list(sic)
+        if sic_df is not None:
+            sic_df = sic_df[start_date:end_date]
+        flag = 1
+        if (sic_df is None) or (sic_df.empty):
+            flag = 0
+            if flag ==1 :
+                cor = {}
+                sic_array = sic_df.to_numpy()
+                df = get_index_data(SIC_dropdown)
+                dff = df[start_date:end_date]
+                n = len(dff)
+                flag1 = 1
+                if dff.empty:
+                    flag1 = 0
+                if flag1 == 1:
+                    dff_array = dff.to_numpy()
+                    if (len(sic_array) == n):
+                        corr, _ = pearsonr(dff_array,sic_array)
+                        cor[sic] = corr
+    if cor is not None:
+        max_cor = max(cor.values())
+        max_sic = max_cor.keys()
+    client.close()
+    Maturity_price = dff[column_name0][-1]
+    payoff = []
+    for i in range(0, n):
+        payoff.append(Maturity_price - dff[column_name0][i] )
+        # payoff.append(Maturity_df.iloc[:,1].to_numeric() - df.iloc[:,1][i].to_numeric())
+
+    fig = go.Figure(
+    data = go.Scatter(
+        x = dff.index,
+        y = payoff,
+        mode='lines',
+        line_color='#10CFC9',
+        line_width=5))
+
+    # Edit the layout
+    fig.update_layout(title= f"payoff curve of SIC: {column_name0}",
+                      xaxis_title='Date',
+                      yaxis_title= f"{column_name0}",
+                      template="plotly_white",
+                      ),
+
+
+    return fig
+
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
