@@ -161,10 +161,12 @@ def update_graph(SIC_dropdown, start_date, end_date):
                 if (len(sic_array) == n):
                     corr = pearsonr(dff_array,sic_array)
                     cor[sic] = corr[0]
-    if cor is not None:
-        if cor != 1:
-            max_cor = max(cor.values())
-            max_sic = max_cor.keys()
+    for sic in sic_list:
+        if cor[sic] is not None:
+            if cor[sic] != 1:
+                max_cor = max(cor.values())
+                max_sic = max_cor.keys()
+                
     client.close()
     Maturity_price = dff[column_name0][-1]
     payoff = []
