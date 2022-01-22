@@ -138,8 +138,6 @@ def update_graph(SIC_dropdown, start_date, end_date):
     dff = df[start_date:end_date]
     n = len(dff)
 
-    # corr
-    test = sic_list
     for sic in sic_list:
         sic_df = get_index_data_list(sic)
         if sic_df is not None:
@@ -147,23 +145,26 @@ def update_graph(SIC_dropdown, start_date, end_date):
         flag = 1
         if (sic_df is None) or (sic_df.empty):
             flag = 0
-            if flag ==1 :
-                cor = {}
-                sic_array = sic_df.to_numpy()
-                df = get_index_data(SIC_dropdown)
-                dff = df[start_date:end_date]
-                n = len(dff)
-                flag1 = 1
-                if dff.empty:
-                    flag1 = 0
-                if flag1 == 1:
-                    dff_array = dff.to_numpy()
-                    if (len(sic_array) == n):
-                        corr, _ = pearsonr(dff_array,sic_array)
-                        cor[sic] = corr
+        elif flag ==1:
+            cor = {}
+            sic_df_columnName = sic_df.columns[0]
+            sic_array = sic_df[sic_df_columnName].to_numpy()
+            df = get_index_data(SIC_dropdown)
+            dff = df[start_date:end_date]
+            n = len(dff)
+            flag1 = 1
+            if dff.empty:
+                flag1 = 0
+            elif flag1 == 1:
+                dff_columnName = dff.columns[0]
+                dff_array = dff[dff_columnName].to_numpy()
+                if (len(sic_array) == n):
+                    corr = pearsonr(dff_array,sic_array)
+                    cor[sic] = corr[0]
     if cor is not None:
-        max_cor = max(cor.values())
-        max_sic = max_cor.keys()
+        if cor != 1:
+            max_cor = max(cor.values())
+            max_sic = max_cor.keys()
     client.close()
     Maturity_price = dff[column_name0][-1]
     payoff = []
