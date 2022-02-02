@@ -1,0 +1,45 @@
+import urllib.request
+from bs4 import BeautifulSoup
+import regex as re
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from pyquery import PyQuery as pq
+import json
+import pandas as pd
+
+url_base = "https://mymarketnews.ams.usda.gov/get_previous_release/2834?type=month&month=10&year=2017"
+
+column_names = ['title', 'document_date', 'file_extension', 'document_url',
+       'report_date', 'slug_id', 'report_end_date']
+df_total = pd.DataFrame(columns = column_names)
+
+for i in range(2017,2023):
+    for j in range(1,13):
+        url ="https://mymarketnews.ams.usda.gov/get_previous_release/2834?type=month&month="+str(j)+"&year="+str(i)
+        page = urllib.request.urlopen(url)
+        soup = BeautifulSoup(page, 'html.parser')
+        # print(soup)
+        site_json = json.loads(soup.text)
+        if site_json["data"] is not None:
+            data = site_json["data"]
+            if len(data)==1 or len(data)==0 :
+                pass
+            else:
+                df = pd.DataFrame(data)
+                df_total = pd.concat([df_total, df], ignore_index=True, sort=False)
+
+df_total.to_excel('/Users/yiminyan/Stable/Cows_scraping_total.xlsx')
+
+
+price = []
+n = len(df_total["document_url"])
+for i in range(n):
+    url_txt = 'https://mymarketnews.ams.usda.gov/'+str(df_total["document_url"][i])
+    page = urllib.request.urlopen(url_txt)
+    soup = BeautifulSoup(page, 'html.parser')
+    price_index = re.search(r'\b[0-9]+\.[0-9]+\b', str(soup))
+    try:
+        price.append(price_index)
+    except:
+        print("An exception occurred"+str(url_txt))
+
