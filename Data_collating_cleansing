@@ -1,0 +1,70 @@
+import pandas as pd
+import numpy as np
+
+data_2011 = pd.read_excel(
+        "/Users/yiminyan/xxx.xls",sheet_name = "Weekly",index_col=None)
+    # shape = data_2011.shape
+data_2011 = data_2011.iloc[0:18,:]
+data_2011 = data_2011.set_index("Weekly Average Prices for 2011")
+data_2011_columns = data_2011.T.columns
+total_df = pd.DataFrame(columns=data_2011_columns)
+total_df
+
+for single in list_xls:
+    single_data_frame = pd.read_excel(file_dir+(single),sheet_name = "Weekly")
+    single_data_frame = single_data_frame.iloc[0:18,:]
+    single_data_frame.index = single_data_frame.iloc[:,0]
+    single_data_frame = single_data_frame.iloc[:,1:len(single_data_frame.columns)-1]
+#     single_data_frame = single_data_frame.set_index("Weekly Average Prices for 2011")
+    single_data_frame = single_data_frame.T
+    total_df = pd.concat([total_df, single_data_frame], axis=0)
+    
+total_df = total_df.rename(columns = {'Week Ended => ':"Date"})
+total_df_new = total_df.reset_index(drop = True)
+
+for i in range(len(total_df_new.index)):
+    if i%2 == 0:
+        j = i+1
+        total_df_new["Date"][i]=total_df_new["Date"][j]
+
+indexes= np.arange(0,1252,2).tolist()
+total_df_indexed = total_df_new.iloc[indexes]
+total_df_indexed.index = total_df_indexed["Date"]
+total_df_indexed = total_df_indexed.iloc[:,1:len(total_df_indexed.columns)]
+
+# generating daily indices 
+
+# Fill value for all daily cell
+full_index=pd.date_range(start="20000101",end="20221231",freq="D")
+df_daily= total_df_indexed.reindex(full_index, fill_value=np.NaN)
+#df_daily[df_daily.index.duplicated()]
+
+
+# convert python object or special data type like datatime[ns] type to float64 type
+
+df_daily[' Cow By-Product Input Values'] = df_daily[' Cow By-Product Input Values'].fillna(0)
+df_daily[' Cow By-Product Input Values'] = df_daily[' Cow By-Product Input Values'].replace(0, np.nan)
+
+df_daily.columns
+for column in df_daily.columns:
+    df_daily[column]=df_daily[column].astype(float)
+    
+    
+# check result 
+df_daily[df_daily[' Cow By-Product Input Values'].notnull()]
+df_daily[df_daily.index.duplicated()]
+
+
+# # generating monthly indices 
+# monthly data
+df_monthly=df_daily.resample("M").mean()
+
+# write to a excel file with different sheets
+with pd.ExcelWriter("xxx_Cleaned.xlsx") as writer:
+    df_monthly.to_excel(writer,sheet_name="Indices Monthly")
+    df_daily.to_excel(writer, sheet_name="Indices daily")
+    
+    
+
+
+
