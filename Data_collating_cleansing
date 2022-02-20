@@ -65,6 +65,53 @@ with pd.ExcelWriter("xxx_Cleaned.xlsx") as writer:
     df_daily.to_excel(writer, sheet_name="Indices daily")
     
     
+    
+# duplicate rows cases
+df = pd.read_excel("/Users/yiminyan/Stable/SIC_Cleaning/Stable_Nairobi_Maize_Feb2022.xlsx")
+# use 'duplicated' not 'duplicate' to show the duplicated rows
+df.shape
+# (237, 5)
+df[df.duplicated()]
+n = len(df[df.duplicated()])
+# 31
+df_del_dup = df.drop_duplicates(subset=None, keep='first', inplace=False, ignore_index=False)
+
+# select two specific columns
+df_del_dup[['Date','Price']]
+
+#Or use 
+# df = pd.read_excel("/Users/yiminyan/Stable/SIC_Cleaning/Stable_Nairobi_Maize_Feb2022.xlsx")
+# df = pd.DataFrame(df, columns = ["Date","Price"])
+
+
+type(df_del_dup[['Date','Price']]
+)
+# pandas.core.frame.DataFrame
+
+Date_Price_df = df_del_dup[['Date','Price']]
+Date_Price_df[Date_Price_df.duplicated(subset="Date", keep='first')]
+# 147	2014-01-29	391.8
+# 391.8
+# 391.797433398311
+Date_Price_Del_DuplicatedDate_df = Date_Price_df.drop_duplicates(subset='Date', keep='first')
+Date_Price_Del_DuplicatedDate_df.shape
+# (205, 2)
+df = Date_Price_Del_DuplicatedDate_df.set_index('Date')
+type(Date_Price_Del_DuplicatedDate_df.index)
+# pandas.core.indexes.numeric.Int64Index
+df = df.set_index(pd.to_datetime(df.index))
+type(df.index)
+# pandas.core.indexes.datetimes.DatetimeIndex
+full_index = pd.date_range(start="20000101", end="20221231", freq="D")
+df_daily = df.reindex(full_index, fill_value=np.NaN)
+df_daily
+
+df_monthly = df_daily.resample("M").mean()
+df_monthly
+with pd.ExcelWriter("Stable_Nairobi_Maize_Feb2022_cleaned.xlsx") as writer:
+    df_monthly.to_excel(writer, sheet_name="Indices")
+    df_daily.to_excel(writer, sheet_name="Indices daily")
+    
 
 
 
